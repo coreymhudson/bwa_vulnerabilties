@@ -166,7 +166,7 @@
 <h2 id="mitigation-recommendations">Mitigation Recommendations</h2>
 <hr />
 
-<p>First, our recommendation to mitigate the attack we demonstrated on BWA-MEM is to simply fix the vulnerability.  We exploited a classic buffer overflow vulnerability that can easily be resolved using more secure buffer allocation practices as described above and performed elsewhere in BWA’s code.  Because BWA is an open-source project, we imagine this patch can be distributed generally.</p>
+<p>First, our recommendation to mitigate the attack we demonstrated on BWA-MEM is to simply fix the vulnerability.  We exploited a classic buffer overflow vulnerability that can easily be resolved using more secure buffer allocation practices as described above and performed elsewhere in BWA’s code.  There is currently a patch existing for this bug, and we recommend that users download and install the most recent version of BWA <a href="https://github.com/lh3/bwa/tree/master">here</a>.</p>
 
 <p>Our primary recommendation to mitigate attacks targeting other genomics software or other areas of the pipeline is to separate the storage of data with its processing.  Because these are two independent functions, they do not need to occur on the same system.  If the patient data (stored as FASTQ files) were not stored on the same system and not write-enabled, the exploit payload would not have been able to modify this data.  We believe this separation of responsibilities should be a standard best practice implemented by all facilities performing genomics research and processing.</p>
 
