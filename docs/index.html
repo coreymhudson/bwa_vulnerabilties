@@ -74,11 +74,11 @@
 
 <p>Different flavors of variant discovery require different steps, depending on if they pool samples, are germline (meaning fixed at birth) or somatic (meaning changing in the body) and whether they are single mutations or variations in copy number. In general, however there is a shared preprocessing set of steps. The best-practices listed below were developed by the BROAD Institute which sequences and assemble large numbers of genomes and has produced some of the most commonly used softwares for variant discovery.<sup><a href="#ref4">4</a></sup></p>
 
-<p><img src="/assets/dznasg7toiq1.png" alt="preprocess" /> <em>Original protocol</em> <a href="https://software.broadinstitute.org/gatk/best-practices/workflow?id=11165">here</a>.</p>
+<p><img src="assets/dznasg7toiq1.png" alt="preprocess" /> <em>Original protocol</em> <a href="https://software.broadinstitute.org/gatk/best-practices/workflow?id=11165">here</a>.</p>
 
 <p>Data comes into the preprocessing stages as <a href="http://support.illumina.com/content/dam/illumina-support/help/BaseSpaceHelp_v2/Content/Vault/Informatics/Sequencing_Analysis/BS/swSEQ_mBS_FASTQFiles.htm">FASTQ Files</a>. These files are then processed using a tool called <a href="https://github.com/lh3/bwa">BWA</a> that performs the task of <strong>“Map to Reference”</strong>. This produces a <a href="https://support.illumina.com/help/BS_App_RNASeq_Alignment_OLH_1000000006112/Content/Source/Informatics/BAM-Format.htm">BAM File</a>. Following this, duplicates are marked and a set of quality scores are estimated using a tool known as <a href="https://github.com/broadinstitute/picard">Picard</a>. The outcome of this is an <em>Analysis-Ready</em> BAM file.</p>
 
-<p><img src="/assets/tzm69d8e2spl.png" alt="somatic" /> This protocol describes the best practices for determining short germline variants - using <strong>BWA</strong>, followed by Picard, then followed by a number of functions within the GATK software. <em>Original posted</em> <a href="https://software.broadinstitute.org/gatk/best-practices/workflow?id=11145">here.</a></p>
+<p><img src="assets/tzm69d8e2spl.png" alt="somatic" /> This protocol describes the best practices for determining short germline variants - using <strong>BWA</strong>, followed by Picard, then followed by a number of functions within the GATK software. <em>Original posted</em> <a href="https://software.broadinstitute.org/gatk/best-practices/workflow?id=11145">here.</a></p>
 
 <h2 id="the-vulnerability-and-exploit">The vulnerability and exploit</h2>
 <hr />
@@ -97,7 +97,7 @@
 
 <p>The vulnerable function allocates a 1024 byte buffer to store the contents of a .ALT file. Because the file size is not checked prior to allocating the buffer, a classic buffer overflow vulnerability exists. BWA must be run with the <strong>mem</strong> command line option to reach the vulnerable code.  Additionally, .ann, .amb, .pac, .bwt, .sa, and .ALT files must be present in order for execution to reach the vulnerable code.  These index files can be retrieved from running <strong>bwa index</strong> or delivered to the user by NCBI. The developers have acknowledged the <strong>bwa mem</strong> option to be the most commonly used BWA option by researchers. Though this vulnerability was only tested in BWA compiled for 32-bit and 64-bit x86 Linux, it is believed to exist in BWA compiled for any operating system. As indicated in the code comment in the figure below, BWA developers appear to be aware that a bug exists but may not be aware of its repercussions.</p>
 
-<p><img src="/assets/bwaVuln.png" alt="bwaVuln" /> <em>Function containing vulnerable code in BWA.</em></p>
+<p><img src="assets/bwaVuln.png" alt="bwaVuln" /> <em>Function containing vulnerable code in BWA.</em></p>
 
 <h3 id="crafting-an-exploit">Crafting an exploit</h3>
 <hr />
@@ -110,15 +110,15 @@
 
 <p>A user can create a segmentation fault if <strong>bwa mem</strong> is used with the index files and a .ALT file containing a line of 5200 bytes or more. This is shown in the figure below.</p>
 
-<p><img src="/assets/bwaSegFault.png" alt="bwaSegFault" /> <em><br /><br />Segmentation fault during execution due to size of file. Note: The file consists of only one line with 5200 characters.</em></p>
+<p><img src="assets/bwaSegFault.png" alt="bwaSegFault" /> <em><br /><br />Segmentation fault during execution due to size of file. Note: The file consists of only one line with 5200 characters.</em></p>
 
 <p>The extra bytes are allocated to store other local variables including some of the index files’ names, a hash map, the incrementor variable indicating the current iteration’s buffer offset, and the .ALT file pointer.  The latter three variables are important to note because they will be crucial to the success of the exploit.  Running <strong>bwa mem</strong> with the large .ALT file in a debugger (we used GDB) reveals that the program crashes prior to returning from the vulnerable function, actually crashing during a call to <code class="highlighter-rouge">fgetc()</code>. Looking a little closer, GDB shows that the segmentation fault occurs due to an attempt to read from an invalid memory address (see the figure below).</p>
 
-<p><img src="/assets/firstSegFault64bit.png" alt="firstSegFault64bit" /> <em>Segmentation fault during execution due to reading from unmapped (invalid) memory address 0x555555767f stored in RDX+0x10.</em></p>
+<p><img src="assets/firstSegFault64bit.png" alt="firstSegFault64bit" /> <em>Segmentation fault during execution due to reading from unmapped (invalid) memory address 0x555555767f stored in RDX+0x10.</em></p>
 
 <p>This could be due to the file contents overwriting a local variable specifying where to read, such as the file pointer.  Examining memory contents of local variables reveals that the last character written has indeed overwritten the last byte of the file pointer.</p>
 
-<p><img src="/assets/filePointerChange.png" alt="filePointerChange" /> <em>First ‘A’ (0x41) byte being written over file pointer value.</em></p>
+<p><img src="assets/filePointerChange.png" alt="filePointerChange" /> <em>First ‘A’ (0x41) byte being written over file pointer value.</em></p>
 
 <p>This pointer to the stream must be kept intact to continue reading the file contents into memory.  Subsequently, the offset of this local variable from the start of the buffer must be calculated to determine where to write the pointer value.  Observing the value of RAX at the time the offending character is written gives the value of the offset stored in the local variable <em>i</em>.  In this case, writing the address value 0x1428 (5160) bytes into the payload will preserve the pointer.  Once the value of the pointer to the file object has been written in the appropriate place, the program continues past this point, but segmentation faults again without control of the instruction pointer.</p>
 
@@ -126,7 +126,7 @@
 
 <p>By overflowing the buffer and writing specific values for three local variables, control of the return pointer is achieved, and <em>arbitrary code can be executed at the privilege level that <strong>bwa mem</strong> was run</em>.  The demo proof of concept exploit created uses a <code class="highlighter-rouge">ret2sys</code> style payload, passing a <code class="highlighter-rouge">sed</code> script as the argument to <code class="highlighter-rouge">system()</code> to perform a search and replace on a string sequence in all .FQ files in a directory.  The creation and display of this payload can be found in the figure below.  This payload was designed to highlight the issue that storage and processing of data, such as FASTQ files, frequently occur on the same system.  As a result, any amount of genomic data on this system could be corrupted.  However, the payload could just as easily have launched a shell or performed any operation allowed by the privilege level of the BWA process.</p>
 
-<p><img src="/assets/sedPayload.png" alt="sedPayload" /> <em>Payload that uses sed to search and replace a 17-character string in all .FQ files in the directory.</em></p>
+<p><img src="assets/sedPayload.png" alt="sedPayload" /> <em>Payload that uses sed to search and replace a 17-character string in all .FQ files in the directory.</em></p>
 
 <p>All in all, the vulnerability in BWA created an opportunity for arbitrary code execution, but the development of the exploit was made significantly simpler by relaxing several modern security protections. Writing a successful exploit for this vulnerability would be prohibitively difficult without local access to the system where BWA was running.  First, it would require trial and error to determine the location and values of the local variables to the vulnerable function.</p>
 
@@ -136,20 +136,20 @@
 
 <p>The primary recommendation to developers on fixing the bug is simply to check the size of the .ALT file before reading its contents into memory.  Allocating a buffer large enough to hold the contents of the file will ensure that the buffer is not overrun and prevent arbitrary code execution.  Additionally, it is not standard security practice to use <code class="highlighter-rouge">fgetc()</code>, <code class="highlighter-rouge">strcat()</code>, or <code class="highlighter-rouge">strcpy()</code> because they do not verify the size of the destination buffer prior to execution. If these functions must be used, the size of the destination buffer should be checked before executing each function.  If these changes are implemented, this BWA vulnerability should be mitigated.  A proposed fix for the vulnerable code can be found in the figure below and has been distributed to the code maintainers.</p>
 
-<p><img src="/assets/bwaProposedCodeFix.png" alt="bwaProposedCodeFix" /> <em>Proposed patch.</em></p>
+<p><img src="assets/bwaProposedCodeFix.png" alt="bwaProposedCodeFix" /> <em>Proposed patch.</em></p>
 
 <h2 id="realistic-genomic-environment">Realistic genomic environment</h2>
 <hr />
 
 <p>The second major security assumption made in this assessment was that the index files were precompiled and delivered over insecure FTP. To evaluate the implications of this assumption, we created a model environment and attack to demonstrate a real-world scenario wherein the vulnerability could be exploited to modify patient data. This was created using our internal Emulytics<sup>TM</sup> capacity for simulation and assessment.<sup><a href="#ref6">6</a></sup> The model environment consisted of a network of three nodes resembling the client-server relationship that research facilities participate in to acquire reference genomes plus a malicious actor with presence on the research network.  In the demonstration a pipeline node equipped with BWA software requests reference genome files from a FTP server in the cloud, and another node existing on the pipeline node’s network is controlled by an attacker and launches an attack with the intent of corrupting patient data.</p>
 
-<p><img src="/assets/FTP_MITM_demo.png" alt="FTP_MITM_demo" /> <em><br /><br />MitM network demo. GRCh38 is the package of index files delivered by FTP. Blue folder is expected gzipped tarfile and red folder is the maliciously crafted gzipped tarfile.</em></p>
+<p><img src="assets/FTP_MITM_demo.png" alt="FTP_MITM_demo" /> <em><br /><br />MitM network demo. GRCh38 is the package of index files delivered by FTP. Blue folder is expected gzipped tarfile and red folder is the maliciously crafted gzipped tarfile.</em></p>
 
 <p>We designed an attack scenario around this realistic network interaction involving a Man-in-the-Middle (MitM) of the FTP file transfer.  The attacker utilizes Bettercap, an extensible MitM framework written in Ruby, to intercept the files being transferred from the cloud to the pipeline and inject the malicious .ALT payload described in the Exploit Development section.  Because of the nuances of FTP, specifically in its usage of two separate connections for file transfer, we had to implement two Bettercap TCP proxy modules served from two MitM sessions.  The first session, control connection, needed to change the file size communicated to the client to reflect the injected data and prevent the connection from ending before the entire file was transferred.  Fortunately, because the injected data was smaller than the server’s original data in the demo, we did not encounter any TCP FIN packets from the server to modify or drop.  The second session, data connection, needed to simply replace the data being sent from the server with our malicious payload.</p>
 
 <p>At the conclusion of the FTP session, the payload is delivered and ready to be launched.  Becuase of the legitimate server’s usage of FTP and our modifying traffic in transit, the victim is unaware of the introduction of the malicious payload and unknowingly launches the exploit when BWA-MEM is next run.</p>
 
-<p><img src="/assets/genomics_process.png" alt="genomics_process" /> <em>Head to Head description of full genomic pipeline and the impact of BWA indices with incorporated malware. BWA MEM does a search and replace of the sample files to corrupt the results. This results in changes that are propogated through the downstream programs.</em></p>
+<p><img src="assets/genomics_process.png" alt="genomics_process" /> <em>Head to Head description of full genomic pipeline and the impact of BWA indices with incorporated malware. BWA MEM does a search and replace of the sample files to corrupt the results. This results in changes that are propogated through the downstream programs.</em></p>
 
 <h2 id="reasons-for-exploitability">Reasons for exploitability</h2>
 <hr />
@@ -208,7 +208,7 @@
           <li class="p-name">Genomic Cybersecurity</li><li><a class="u-email" href="mailto:cmhudso@sandia.gov">cmhudso@sandia.gov</a></li></ul>
       </div>
 
-      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/coreymhudson"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">coreymhudson</span></a></li><li><a href="https://www.twitter.com/coreymhudson"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#twitter"></use></svg> <span class="username">coreymhudson</span></a></li></ul>
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/coreymhudson"><svg class="svg-icon"><use xlink:href="assets/minima-social-icons.svg#github"></use></svg> <span class="username">coreymhudson</span></a></li><li><a href="https://www.twitter.com/coreymhudson"><svg class="svg-icon"><use xlink:href="assets/minima-social-icons.svg#twitter"></use></svg> <span class="username">coreymhudson</span></a></li></ul>
 </div>
 
       <div class="footer-col footer-col-3">
