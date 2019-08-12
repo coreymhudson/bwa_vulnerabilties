@@ -175,7 +175,8 @@
 <p>Our primary recommendation to mitigate attacks targeting other genomics software or other areas of the pipeline is to separate the storage of data with its processing.  Because these are two independent functions, they do not need to occur on the same system.  If the patient data (stored as FASTQ files) were not stored on the same system and not write-enabled, the exploit payload would not have been able to modify this data.  We believe this separation of responsibilities should be a standard best practice implemented by all facilities performing genomics research and processing.</p>
 
 <p>Another best practice recommendation is to utilize file integrity checks, especially when downloading files over insecure protocols such as FTP or HTTP.  Integrity checks such as comparing file hashes using a modern cryptographic hashing algorithm (i.e. SHA-3) will reveal any modification to a .ALT or any other downloaded file as a result of a MitM.</p>
-
+<p>MODIFICATION: As of 3/12/19 NCBI issued MD5 checksums on all of its files stored here. We encourage all users to use them and all softwares downloading data directly from ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/ to check the sums at ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/md5checksums.txt .</p>
+    
 <h2 id="summary-1">Summary</h2>
 <hr />
 
